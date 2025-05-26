@@ -41,5 +41,5 @@ until done -- Repeats until VM signals done
 
 print("Final output information:\n")
 print("Stack: "..textutils.serialise(obeliskoid.stack))
-print("Variables: "..textutils.serialise(obeliskoid.variables))
+print("Variables: "..textutils.serialise(obeliskoid.variables)) -- Should have x = 0, as x was decremented until 0
 ```
