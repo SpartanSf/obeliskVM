@@ -5,7 +5,7 @@ Supported languages:
 - [vlscript](https://github.com/SpartanSf/vlscript/)
 
 ## Installation
-Copy `obelisk.lua` and `bit.lua`
+Run `wget run https://raw.githubusercontent.com/SpartanSf/obeliskVM/main/install.lua`
 
 ## Demo
 
