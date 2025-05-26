@@ -34,10 +34,7 @@ local obeliskoid = obelisk.new() -- Spawn a new obelisk VM instance
 -- Completely compile and load the bytecode for the previous vlscript script
 obeliskoid:quickBytecode(0, vlscript.compile(vlscript.buildAST(vlscript.tokenize(code))))
 
-local done
-repeat
-    done = obeliskoid:run() -- Runs 1 cycle of the VM
-until done -- Repeats until VM signals done
+obeliskoid:run() -- Runs the VM
 
 print("Final output information:\n")
 print("Stack: "..textutils.serialise(obeliskoid.stack))
