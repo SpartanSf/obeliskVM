@@ -1,6 +1,8 @@
 local bit = require("bit")
-
 local obelisk = {}
+local log = fs.open("obl.log", "w")
+
+local doLog = false
 
 function obelisk.new()
     local obeliskoid = {
@@ -41,17 +43,19 @@ function obelisk.new()
 
     local function getVar(self, name)
         for i = #self.variables, 1, -1 do
-            if self.variables[i][name] ~= nil then
-                return self.variables[i][name]
+            local frame = self.variables[i]
+            if frame[name] ~= nil then
+                return frame[name]
             end
         end
-        error("Undefined variable: " .. name, 0)
+        error("Undefined variable: " .. (name or ""), 0)
     end
 
     local function setVar(self, name, value)
         for i = #self.variables, 1, -1 do
-            if self.variables[i][name] ~= nil then
-                self.variables[i][name] = value
+            local frame = self.variables[i]
+            if frame[name] ~= nil then
+                frame[name] = value
                 return
             end
         end
@@ -88,8 +92,8 @@ function obelisk.new()
         CMP = function(self)
             local b = pop(self)
             local a = pop(self)
-            self.flags.zero = b == 0
-            self.flags.equal = a == b
+            self.flags.zero = (b == 0)
+            self.flags.equal = (a == b)
         end,
 
         SET = function(self, name)
@@ -102,36 +106,42 @@ function obelisk.new()
 
         JUMP_IF_ZERO = function(self)
             local loc = pop(self)
-            if self.flags.zero == true then
+            if self.flags.zero then
                 self.PC = loc - 1
             end
         end,
 
         JUMP_IF_NONZERO = function(self)
             local loc = pop(self)
-            if self.flags.zero == false then
+            if not self.flags.zero then
                 self.PC = loc - 1
             end
         end,
 
         JUMP_IF_EQUAL = function(self)
             local loc = pop(self)
-            if self.flags.equal == true then
+            if self.flags.equal then
                 self.PC = loc - 1
             end
         end,
 
         JUMP_IF_NONEQUAL = function(self)
             local loc = pop(self)
-            if self.flags.equal == false then
+            if not self.flags.equal then
                 self.PC = loc - 1
             end
         end,
 
         CALL = function(self)
             local loc = pop(self)
-            push(self, self.PC)
+            push(self, self.PC + 1)
+            pushEnv(self)
             self.PC = loc - 1
+        end,
+
+        RETURN = function(self)
+            popEnv(self)
+            self.PC = pop(self) - 1
         end,
 
         PUSHENV = function(self)
@@ -144,7 +154,7 @@ function obelisk.new()
 
         HALT = function(self)
             self.halted = true
-        end
+        end,
     }
 
     function obeliskoid:run(cycles)
@@ -154,8 +164,15 @@ function obelisk.new()
         while not self.halted and cycles ~= currentCycle do
             currentCycle = currentCycle + 1
             local instruction = self.bytecode[self.PC]
+
             if not instruction then
                 error("Obelisk could not find bytecode at: " .. self.PC, 0)
+            end
+
+            if doLog then
+                log.writeLine(instruction[1].." executing with parameter "..(instruction[2] or ""))
+                log.writeLine("PC: "..self.PC..": "..textutils.serialise(instruction, {compact = true}))
+                log.flush()
             end
 
             local opcode = instruction[1]
@@ -167,7 +184,14 @@ function obelisk.new()
             handler(self, instruction[2])
 
             self.PC = bit.band(self.PC + 1, 0xFFFF)
+
+            if doLog then
+                log.writeLine("PC: "..self.PC..": "..textutils.serialise(self.bytecode[self.PC], {compact = true}))
+                log.writeLine(instruction[1].." executed\n\n")
+                log.flush()
+            end
         end
+        return self.halted
     end
 
     function obeliskoid:quickBytecode(location, bytecode)
